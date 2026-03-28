@@ -14,6 +14,7 @@ from pathlib import Path
 
 import numpy as np
 import soundfile as sf
+from stft_pipeline import STFTConfig, STFTPipeline
 
 
 EPS = 1e-12
@@ -25,42 +26,6 @@ def load_audio_mono(path: Path):
     if waveform.ndim == 2:
         waveform = np.mean(waveform, axis=1)
     return waveform, sample_rate
-
-
-def frame_signal(signal: np.ndarray, frame_length: int, hop_length: int):
-    if len(signal) == 0:
-        raise ValueError("Input signal is empty.")
-
-    if len(signal) <= frame_length:
-        num_frames = 1
-    else:
-        num_frames = 1 + int(np.ceil((len(signal) - frame_length) / hop_length))
-
-    padded_len = (num_frames - 1) * hop_length + frame_length
-    pad_amount = padded_len - len(signal)
-    padded = np.pad(signal, (0, pad_amount), mode="constant")
-
-    frames = np.zeros((num_frames, frame_length), dtype=np.float64)
-    for i in range(num_frames):
-        start = i * hop_length
-        frames[i] = padded[start : start + frame_length]
-    return frames, len(signal)
-
-
-def overlap_add(frames: np.ndarray, frame_length: int, hop_length: int, output_len: int, window: np.ndarray):
-    num_frames = frames.shape[0]
-    total_len = (num_frames - 1) * hop_length + frame_length
-    output = np.zeros(total_len, dtype=np.float64)
-    weight = np.zeros(total_len, dtype=np.float64)
-
-    window_sq = window ** 2
-    for i in range(num_frames):
-        start = i * hop_length
-        output[start : start + frame_length] += frames[i] * window
-        weight[start : start + frame_length] += window_sq
-
-    output /= (weight + EPS)
-    return output[:output_len]
 
 
 def estimate_noise_psd(noisy_spec: np.ndarray, sample_rate: int, hop_length: int, noise_duration: float):
@@ -83,11 +48,8 @@ def wiener_filter_sliding(
     noise_duration: float,
     alpha: float,
 ):
-    window = np.hanning(frame_length)
-
-    frames, original_len = frame_signal(noisy, frame_length, hop_length)
-    windowed = frames * window[None, :]
-    noisy_spec = np.fft.rfft(windowed, axis=1)
+    pipeline = STFTPipeline(STFTConfig(frame_length=frame_length, hop_length=hop_length, window="hann"))
+    noisy_spec, original_len = pipeline.stft(noisy)
 
     noise_psd = estimate_noise_psd(noisy_spec, sample_rate, hop_length, noise_duration)
 
@@ -106,8 +68,7 @@ def wiener_filter_sliding(
         enhanced_spec[i] = xk
         prev_clean_psd = np.abs(xk) ** 2
 
-    enhanced_frames = np.fft.irfft(enhanced_spec, n=frame_length, axis=1)
-    enhanced = overlap_add(enhanced_frames, frame_length, hop_length, original_len, window)
+    enhanced = pipeline.istft(enhanced_spec, output_length=original_len)
     return enhanced
 
 

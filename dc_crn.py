@@ -4,7 +4,7 @@ import os
 import sys
 from show import show_params, show_model
 import torch.nn.functional as F
-from conv_stft import ConvSTFT, ConviSTFT 
+from stft_pipeline import TorchSTFTPipeline
 
 from complexnn import ComplexConv2d, ComplexConvTranspose2d, NavieComplexLSTM, complex_cat, ComplexBatchNorm
 
@@ -62,8 +62,13 @@ class DCCRN(nn.Module):
 
         fix=True
         self.fix = fix
-        self.stft = ConvSTFT(self.win_len, self.win_inc, fft_len, self.win_type, 'complex', fix=fix)
-        self.istft = ConviSTFT(self.win_len, self.win_inc, fft_len, self.win_type, 'complex', fix=fix)
+        self.stft_pipeline = TorchSTFTPipeline(
+            win_len=self.win_len,
+            win_inc=self.win_inc,
+            fft_len=fft_len,
+            win_type=self.win_type,
+            fix=fix,
+        )
         
         self.encoder = nn.ModuleList()
         self.decoder = nn.ModuleList()
@@ -148,7 +153,7 @@ class DCCRN(nn.Module):
             self.enhance.flatten_parameters()
 
     def forward(self, inputs, lens=None):
-        specs = self.stft(inputs)
+        specs = self.stft_pipeline.stft(inputs)
         real = specs[:,:self.fft_len//2+1]
         imag = specs[:,self.fft_len//2+1:]
         spec_mags = torch.sqrt(real**2+imag**2+1e-8)
@@ -226,7 +231,7 @@ class DCCRN(nn.Module):
             real, imag = real*mask_real, imag*mask_imag 
         
         out_spec = torch.cat([real, imag], 1) 
-        out_wav = self.istft(out_spec)
+        out_wav = self.stft_pipeline.istft(out_spec)
          
         out_wav = torch.squeeze(out_wav, 1)
         #out_wav = torch.tanh(out_wav)
@@ -262,7 +267,7 @@ class DCCRN(nn.Module):
             #return -torch.mean(si_snr(inputs, labels))
             return -(si_snr(inputs, labels))
         elif loss_mode == 'MAE':
-            gth_spec, gth_phase = self.stft(labels) 
+            gth_spec = self.stft_pipeline.stft(labels)
             b,d,t = inputs.shape 
             return torch.mean(torch.abs(inputs-gth_spec))*d
 
