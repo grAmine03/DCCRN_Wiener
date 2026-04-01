@@ -36,7 +36,7 @@ class SimplifiedComplexCNN(nn.Module):
     Uses Complex Convolutions and Skip Connections (U-Net style).
     No LSTM bottlenecks to keep it purely convolutional and simple.
     """
-    def __init__(self, win_len=400, win_inc=100, fft_len=512, kernel_num=[16, 32, 64, 128, 256]):
+    def __init__(self, win_len=400, win_inc=100, fft_len=512, kernel_num=[72, 72, 144, 144, 144, 160, 160, 180]):
         super().__init__()
         
         self.win_len = win_len

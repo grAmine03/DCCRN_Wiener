@@ -139,9 +139,13 @@ def main():
 
     methods = {
         "Noisy": "noisy",
+        "Wiener Filter": "wiener",
         "Mag-only CNN (CRN)": "crn",
         "Complex CNN (DCUNET)": "dcunet",
         "DCCRN": "dccrn_e",
+        "Trained Mag-CNN": "mag_cnn_trained",
+        "Trained DCUNET": "dcunet_trained",
+        "Trained DCCRN": "dccrn_trained",
     }
 
     if not os.path.isdir(clean_root):

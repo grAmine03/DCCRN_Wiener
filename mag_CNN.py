@@ -5,11 +5,14 @@ import torch.nn.functional as F
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
         super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.time_pad = padding[1]
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride, (padding[0], 0))
         self.bn = nn.BatchNorm2d(out_channels)
         self.prelu = nn.PReLU()
 
     def forward(self, x):
+        if self.time_pad > 0:
+            x = F.pad(x, [self.time_pad, 0, 0, 0])
         return self.prelu(self.bn(self.conv(x)))
 
 class TrConvBlock(nn.Module):

@@ -21,8 +21,8 @@ EPS = 1e-12
 
 @dataclass
 class STFTConfig:
-    frame_length: int = 512
-    hop_length: int = 256
+    frame_length: int = 25
+    hop_length: int = 6.25
     window: str = "hann"
 
 
