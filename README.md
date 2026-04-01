@@ -8,7 +8,7 @@ critical alignment information required for high-fidelity audio re-
 construction. Recent continuous-time models attempt complex-
 spectral mapping but often rely on real-valued networks. In this
 review, we examine the Deep Complex Convolution Recurrent
-Network (DCCRN) [ 1 ], a framework that integrates a Convolu-
+Network (DCCRN), a framework that integrates a Convolu-
 tional Encoder-Decoder (CED) structure with Long Short-Term
 Memory (LSTM) entirely within the complex domain. We imple-
 ment and compare three methods: a sliding-window Wiener filter
